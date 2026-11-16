@@ -1,0 +1,25 @@
+import { Router } from "express";
+import {
+  createArticle,
+  deleteArticle,
+  listManagedArticles,
+  listPublicArticles,
+  getPublicArticle,
+  generateArticleDraft,
+  updateArticle,
+} from "../controllers/articles.controller.js";
+import { requireAdmin, requireAuth } from "../middlewares/auth.js";
+import { aiChatLimiter } from "../middlewares/rateLimit.js";
+
+export const articlesRouter = Router();
+
+// فهرست مقالات منتشرشده برای صفحه اصلی سایت، بدون نیاز به ورود
+articlesRouter.get("/", listPublicArticles);
+
+// مدیریت محتوا فقط برای مدیر سامانه
+articlesRouter.get("/manage", requireAuth, requireAdmin, listManagedArticles);
+articlesRouter.get("/:slug", getPublicArticle);
+articlesRouter.post("/generate-draft", requireAuth, requireAdmin, aiChatLimiter, generateArticleDraft);
+articlesRouter.post("/", requireAuth, requireAdmin, createArticle);
+articlesRouter.put("/:id", requireAuth, requireAdmin, updateArticle);
+articlesRouter.delete("/:id", requireAuth, requireAdmin, deleteArticle);
