@@ -8,7 +8,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   TELEGRAM_BOT_TOKEN: z.string().default(""),
   TELEGRAM_FILES_BOT_TOKEN: z.string().default(""),
-  GOOGLE_APPS_SCRIPT_URL: z.string().url().default(""),
+  GOOGLE_APPS_SCRIPT_URL: z.string().url().or(z.literal("")).default(""),
   GOOGLE_APPS_SCRIPT_SECRET: z.string().default(""),
   CLIENT_URL: z.string().min(1).default("http://localhost:3000"),
   OTP_EXPIRES_MINUTES: z.coerce.number().int().min(1).max(30).default(3),
