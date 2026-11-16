@@ -1,47 +1,64 @@
 import { env } from "../config/env.js";
 import { AppError } from "../utils/errors.js";
 
+type AppsScriptResponse = {
+  ok?: boolean;
+  error?: string;
+};
+
 export async function sendEmailCode(to: string, code: string, expiresMinutes: number): Promise<void> {
-  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+  if (!env.GOOGLE_APPS_SCRIPT_URL || !env.GOOGLE_APPS_SCRIPT_SECRET) {
     throw new AppError(
       503,
       "EMAIL_NOT_CONFIGURED",
-      "ارسال ایمیل هنوز فعال نشده است. کلید Resend و آدرس فرستنده را در تنظیمات سرور وارد کن.",
+      "ارسال ایمیل هنوز فعال نشده است. آدرس Google Apps Script و کلید امنیتی را در تنظیمات سرور وارد کن.",
     );
   }
 
   let response: Response;
   try {
-    response = await fetch("https://api.resend.com/emails", {
+    response = await fetch(env.GOOGLE_APPS_SCRIPT_URL, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: env.EMAIL_FROM,
-        to: [to],
-        subject: "کد تأیید حساب مدار",
-        html: `<div dir="rtl" style="font-family:Tahoma,Arial;background:#f5f6f8;padding:32px;color:#17233f"><div style="max-width:520px;margin:auto;background:#fff;border:1px solid #e5e8ef;border-radius:16px;padding:30px"><h2 style="color:#14264f">تأیید حساب مدار</h2><p>برای تکمیل ثبت‌نام، کد زیر را در وب‌سایت مدار وارد کنید:</p><div style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#b8892d;padding:18px 0" dir="ltr">${code}</div><p>این کد تا ${expiresMinutes} دقیقه معتبر است.</p><small>اگر شما این درخواست را ثبت نکرده‌اید، این ایمیل را نادیده بگیرید.</small></div></div>`,
+        apiKey: env.GOOGLE_APPS_SCRIPT_SECRET,
+        to,
+        code,
+        expiresMinutes,
       }),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(30000),
+      redirect: "follow",
     });
   } catch (error) {
-    console.error("Resend request failed:", error instanceof Error ? error.message : error);
+    console.error("Google Apps Script email request failed:", error instanceof Error ? error.message : error);
     throw new AppError(
       502,
       "EMAIL_DELIVERY_FAILED",
-      "ارتباط با سرویس ارسال ایمیل برقرار نشد. چند لحظه دیگر دوباره امتحان کن.",
+      "ارتباط با سرویس ایمیل گوگل برقرار نشد. چند لحظه دیگر دوباره امتحان کن.",
     );
   }
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    console.error("Resend delivery failed:", response.status, detail.slice(0, 500));
+  let result: AppsScriptResponse;
+  try {
+    result = (await response.json()) as AppsScriptResponse;
+  } catch {
+    console.error("Google Apps Script returned a non-JSON response:", response.status);
     throw new AppError(
       502,
       "EMAIL_DELIVERY_FAILED",
-      "ارسال ایمیل انجام نشد. کلید Resend و تأیید آدرس فرستنده را بررسی کن.",
+      "پاسخ سرویس ایمیل گوگل معتبر نبود. تنظیمات اسکریپت را بررسی کن.",
+    );
+  }
+
+  if (!response.ok || result.ok !== true) {
+    // Do not log the request body or API key. Apps Script returns only a safe error code.
+    console.error("Google Apps Script email delivery failed:", response.status, result.error ?? "unknown_error");
+    throw new AppError(
+      502,
+      "EMAIL_DELIVERY_FAILED",
+      result.error === "daily_quota_exceeded"
+        ? "سهمیه روزانه ارسال ایمیل حساب گوگل تمام شده است. فردا دوباره امتحان کن."
+        : "ارسال ایمیل انجام نشد. دسترسی و تنظیمات Google Apps Script را بررسی کن.",
     );
   }
 }
