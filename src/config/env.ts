@@ -6,7 +6,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(5000),
   MONGODB_URI: z.string().min(1),
   JWT_SECRET: z.string().min(32),
-  TELEGRAM_BOT_TOKEN: z.string().min(1),
+  TELEGRAM_BOT_TOKEN: z.string().default(""),
   TELEGRAM_FILES_BOT_TOKEN: z.string().default(""),
   SMTP_USER: z.string().email().default(""),
   SMTP_APP_PASSWORD: z.string().default(""),
