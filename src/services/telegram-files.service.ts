@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { User } from "../models/User.js";
 import { StudyFile } from "../models/StudyFile.js";
 import { hashPassword } from "../utils/security.js";
+import { saveMusicTrack } from "./music-store.service.js";
 
 type TgResponse<T> = { ok: boolean; result?: T; description?: string };
 type TgDocument = { file_id: string; file_unique_id: string; file_name?: string; mime_type?: string; file_size?: number };
