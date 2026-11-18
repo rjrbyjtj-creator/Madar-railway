@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { User } from "../models/User.js";
 import { StudyFile } from "../models/StudyFile.js";
 import { hashPassword } from "../utils/security.js";
-import { saveMusicTrack } from "./music-store.service.js";
+import { saveMusicTrack, saveMusicAudioFile } from "./music-store.service.js";
 
 type TgResponse<T> = { ok: boolean; result?: T; description?: string };
 type TgDocument = { file_id: string; file_unique_id: string; file_name?: string; mime_type?: string; file_size?: number };
@@ -100,7 +100,7 @@ async function handle(message: TgMessage): Promise<void> {
     const field=(key:string)=>{const match=caption.match(new RegExp("(?:^|\\n)"+key+"\\s*[:：-]\\s*([^\\n]+)","i"));return match?.[1]?.trim()||"";};
     const title=(audioMedia.title||field("عنوان")||caption.split("\n")[0]||fileName.replace(audioExtensions,"")).trim().slice(0,180)||"آهنگ جدید";
     const artist=(audioMedia.performer||field("خواننده")||"نامشخص").trim().slice(0,120),album=field("آلبوم").slice(0,120),category=(field("دسته")||field("سبک")||"عمومی").slice(0,60);
-    try{const saved=await saveMusicTrack({telegramFileId:audioMedia.file_id,telegramFileUniqueId:audioMedia.file_unique_id,title,artist,album,category,duration,fileName,mimeType,fileSize:size,caption,uploadedByChatId:chatId,uploadedByName:[message.from?.first_name,message.from?.last_name].filter(Boolean).join(" "),telegramMessageId:message.message_id});await reply(message.chat.id,"🎵 آهنگ با موفقیت در پایگاه داده موسیقی مدار ثبت شد.\n\n🎧 "+saved.title+"\n👤 "+saved.artist+"\n⏱ "+Math.floor(saved.duration/60)+":"+String(saved.duration%60).padStart(2,"0")+"\n📦 "+Math.ceil(saved.fileSize/1024)+" کیلوبایت\n\nدر فهرست آهنگ‌های سایت نمایش داده می‌شود.");}
+    try{const saved=await saveMusicTrack({telegramFileId:audioMedia.file_id,telegramFileUniqueId:audioMedia.file_unique_id,title,artist,album,category,duration,fileName,mimeType,fileSize:size,caption,uploadedByChatId:chatId,uploadedByName:[message.from?.first_name,message.from?.last_name].filter(Boolean).join(" "),telegramMessageId:message.message_id});const downloaded=await getTelegramFileStream(audioMedia.file_id);const audioBytes=Buffer.from(await downloaded.response.arrayBuffer());if(audioBytes.length!==size)throw new Error("Downloaded audio size does not match Telegram metadata");await saveMusicAudioFile(saved.id,audioBytes);await reply(message.chat.id,"🎵 آهنگ با موفقیت در پایگاه داده موسیقی مدار ثبت شد.\n\n🎧 "+saved.title+"\n👤 "+saved.artist+"\n⏱ "+Math.floor(saved.duration/60)+":"+String(saved.duration%60).padStart(2,"0")+"\n📦 "+Math.ceil(saved.fileSize/1024)+" کیلوبایت\n\nدر فهرست آهنگ‌های سایت نمایش داده می‌شود.");}
     catch(error){console.error("[TELEGRAM_FILES] music save failed:",error instanceof Error?error.message:error);await reply(message.chat.id,"⛔️ ثبت آهنگ انجام نشد. اتصال دیتابیس Turso بخش موسیقی را بررسی کن و دوباره بفرست.");}
     return;
   }
