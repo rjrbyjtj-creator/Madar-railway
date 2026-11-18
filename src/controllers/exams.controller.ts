@@ -17,8 +17,11 @@ const examInputSchema = z.object({
 const patchSchema = examInputSchema.partial();
 type AuthUser = { _id: mongoose.Types.ObjectId; role?: string };
 
-function parseExam(input: unknown, partial = false) {
-  const parsed = (partial ? patchSchema : examInputSchema).safeParse(input);
+type ExamInput = z.infer<typeof examInputSchema>;
+function parseExam(input: unknown): ExamInput;
+function parseExam(input: unknown, partial: true): Partial<ExamInput>;
+function parseExam(input: unknown, partial = false): ExamInput | Partial<ExamInput> {
+  const parsed = partial ? patchSchema.safeParse(input) : examInputSchema.safeParse(input);
   if (!parsed.success) {
     throw new AppError(400, "INVALID_EXAM", "اطلاعات آزمون معتبر نیست؛ عنوان، تاریخ و مدت آزمون را بررسی کن.");
   }
@@ -56,6 +59,7 @@ export async function listPublishedExams(_req: Request, res: Response): Promise<
     currentExam: current ? examDto(current) : null,
     summary: {
       publishedCount: exams.length,
+      upcomingCount: upcoming.length,
       latestExamAt: exams[0]?.scheduledAt ?? null,
     },
   });
