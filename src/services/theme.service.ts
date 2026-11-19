@@ -88,7 +88,7 @@ export async function seedDefaultThemes(): Promise<void> {
         // Keep the built-in gray pack aligned with the exact gray palette used by Robo.
         await Theme.updateOne(
           { slug: theme.slug },
-          { $set: { name: theme.name, colors: theme.colors, font: theme.font, isDefault: true }, $setOnInsert: { ...theme, isActive: false } },
+          { $set: { name: theme.name, colors: theme.colors, font: theme.font, isDefault: true }, $setOnInsert: { slug: theme.slug, mode: theme.mode, isActive: false } },
           { upsert: true },
         );
       } else {
