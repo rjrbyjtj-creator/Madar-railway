@@ -54,8 +54,8 @@ const DEFAULT_THEMES: Array<{
     name: "خاکستری",
     slug: "gray",
     colors: {
-      navy: "#343a40", gold: "#858b93", bg: "#f3f4f6", green: "#64748b",
-      text: "#24292f", muted: "#747b84", surface: "#ffffff", line: "#dfe3e8",
+      navy: "#555e5b", gold: "#668c82", bg: "#e9eaeb", green: "#668c82",
+      text: "#282d2c", muted: "#737b78", surface: "#f8f8f7", line: "#d4d7d6",
     },
     font: "vazir", mode: "light", isDefault: true,
   },
