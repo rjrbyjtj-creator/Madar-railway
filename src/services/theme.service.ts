@@ -84,11 +84,20 @@ export function fontCss(font: string): string {
 export async function seedDefaultThemes(): Promise<void> {
   try {
     for (const theme of DEFAULT_THEMES) {
-      await Theme.updateOne(
-        { slug: theme.slug },
-        { $setOnInsert: { ...theme, isActive: false, isDefault: true } },
-        { upsert: true },
-      );
+      if (theme.slug === "gray") {
+        // Keep the built-in gray pack aligned with the exact gray palette used by Robo.
+        await Theme.updateOne(
+          { slug: theme.slug },
+          { $set: { name: theme.name, colors: theme.colors, font: theme.font, isDefault: true }, $setOnInsert: { ...theme, isActive: false } },
+          { upsert: true },
+        );
+      } else {
+        await Theme.updateOne(
+          { slug: theme.slug },
+          { $setOnInsert: { ...theme, isActive: false, isDefault: true } },
+          { upsert: true },
+        );
+      }
     }
 
     // Migrate old built-in presets to the single branded default without
